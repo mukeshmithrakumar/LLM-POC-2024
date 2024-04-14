@@ -17,6 +17,7 @@ class Config:
     seq_len: int: The sequence length for the training process. default 480.
     d_model: int: The text embedding dimension. default 512.
     datasource: str: The datasource
+    data_folder: str: The data folder
     lang_src: str: The source language for the translation
     lang_tgt: str: The target language for the translation
     model_folder: str: The folder where the model weights are stored
@@ -35,6 +36,7 @@ class Config:
     seq_len: int = 480
     d_model: int = 512
     datasource: str = 'opus_books'
+    data_folder: str = 'dataset'
     lang_src: str = "en"
     lang_tgt: str = "fr"
     model_folder: str = "weights"
