@@ -26,6 +26,7 @@ class Config:
     tokenizer_file: str: The file path for the tokenizer file
     experiment_name: str: The name of the experiment
     """
+
     dropout_constant: float = 0.1
     num_layers: int = 6
     num_heads: int = 8
@@ -35,8 +36,8 @@ class Config:
     lr: float = 10**-4
     seq_len: int = 480
     d_model: int = 512
-    datasource: str = 'opus_books'
-    data_folder: str = 'dataset'
+    datasource: str = "opus_books"
+    data_folder: str = "dataset"
     lang_src: str = "en"
     lang_tgt: str = "fr"
     model_folder: str = "weights"
