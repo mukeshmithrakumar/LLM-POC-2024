@@ -3,6 +3,9 @@ numpy
 matplotlib
 seaborn
 scikit-learn
-black
 lightning
+transformers
 tensorboard
+ruff
+pylint
+black
