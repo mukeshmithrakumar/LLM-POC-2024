@@ -165,3 +165,4 @@ runs/
 tokenizers/
 dataset/
 data/
+logs/
