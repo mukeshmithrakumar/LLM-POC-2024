@@ -10,7 +10,7 @@ from contextlib import nullcontext
 import numpy as np
 import torch
 import yaml
-from config import TrainingConfig
+from configs.config import TrainingConfig
 from model import GPT, GPTConfig
 from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -22,33 +22,46 @@ logging.basicConfig(
 )
 
 # ---------------------------------------------------------------------------- #
-# default config values designed to train a gpt2 (124M) on OpenWebText
+# Configuration
+def read_configurations(default_config_path: str):
+    # parse default configs from yaml file
+    with open(default_config_path, "r") as f:
+        default_config = yaml.safe_load(f)
+    logging.debug(f"default_config: {default_config}")
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description="GPT Training Configuration")
-parser.add_argument(
-    "--config", type=str, default="config.yaml", help="Path to configuration file"
-)
-args, unknown = parser.parse_known_args()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="GPT Training Configuration")
+    # make the following argument optional
+    parser.add_argument("--config", type=str, help="Path to configuration file")
+    args, unknown = parser.parse_known_args()
 
-# Read configuration from file
-with open(args.config, "r") as f:
-    config = yaml.safe_load(f)
+    # Read the optional configuration from file and update the default configuration
+    with open(args.config, "r") as f:
+        optional_config = yaml.safe_load(f)
+    logging.info(f"optional_config: {optional_config}")
 
-# Add arguments to the parser for each configuration
-for key in config.keys():
-    parser.add_argument(f"--{key}")
+    for key in optional_config.keys():
+        if default_config.get(key) is not None:
+            default_config[key] = optional_config.get(key)
+    logging.debug(f"default_config: {default_config}")
 
-# Parse command line arguments again, this time including the new arguments
-args = parser.parse_args()
+    # Add arguments to the parser for each configuration
+    for key in default_config.keys():
+        parser.add_argument(f"--{key}")
 
-# Update configuration with command line arguments
-for key in config.keys():
-    if getattr(args, key) is not None:
-        config[key] = getattr(args, key)
-logging.info(f"config: {config}")
+    # Parse command line arguments again, this time including the new arguments
+    args = parser.parse_args()
 
-config = TrainingConfig(**config)
+    # Update configuration with command line arguments
+    for key in default_config.keys():
+        if getattr(args, key) is not None:
+            default_config[key] = getattr(args, key)
+    logging.info(f"config: {default_config}")
+
+    config = TrainingConfig(**default_config)
+    return config
+
+config = read_configurations(default_config_path="configs/default_configs.yaml")
 
 dtype = (
     "bfloat16"
