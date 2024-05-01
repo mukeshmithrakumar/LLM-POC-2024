@@ -1,75 +1,61 @@
-import argparse
+""" Training Script.
+
+This training script can be run both on a single gpu in debug mode,
+and also in a larger training run with distributed data parallel (ddp).
+
+To run on a single GPU, example:
+$ python train.py --batch_size=32 --compile=False
+
+To run with DDP on 4 gpus on 1 node, example:
+$ torchrun --standalone --nproc_per_node=4 train.py
+
+To run with DDP on 4 gpus across 2 nodes, example:
+- Run on the first (master) node with example IP 123.456.123.456:
+$ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=123.456.123.456 --master_port=1234 train.py
+- Run on the worker node:
+$ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=123.456.123.456 --master_port=1234 train.py
+(If your cluster does not have Infiniband interconnect prepend NCCL_IB_DISABLE=1)
+
+You can use the default configs or pass in your own configs, for eg. to use train_shakespeare_char.yaml
+$ python train.py --config configs/train_shakespeare_char.yaml
+
+In addition you can also pass arguments directly from command line:
+$ python train.py --out_dir=out-shakespeare-char
+"""
+
 import logging
-import sys
 import math
 import os
 import pickle
+import sys
 import time
 from contextlib import nullcontext
 
 import numpy as np
 import torch
-import yaml
 from configs.config import TrainingConfig
+from helpers import read_configurations
 from model import GPT, GPTConfig
 from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-# Set up logging
+
+# ------------------------------ Set up logging ------------------------------ #
 logging.basicConfig(
     level=logging.INFO,
     handlers=[logging.FileHandler("logs/train.log"), logging.StreamHandler(sys.stdout)],
 )
 
-
-# ---------------------------------------------------------------------------- #
-# Configuration
-def read_configurations(default_config_path: str):
-    # parse default configs from yaml file
-    with open(default_config_path, "r") as f:
-        default_config = yaml.safe_load(f)
-    logging.debug(f"default_config: {default_config}")
-
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="GPT Training Configuration")
-    # make the following argument optional
-    parser.add_argument("--config", type=str, help="Path to configuration file")
-    args, unknown = parser.parse_known_args()
-
-    # Read the optional configuration from file and update the default configuration
-    with open(args.config, "r") as f:
-        optional_config = yaml.safe_load(f)
-    logging.info(f"optional_config: {optional_config}")
-
-    for key in optional_config.keys():
-        if default_config.get(key) is not None:
-            default_config[key] = optional_config.get(key)
-    logging.debug(f"default_config: {default_config}")
-
-    # Add arguments to the parser for each configuration
-    for key in default_config.keys():
-        parser.add_argument(f"--{key}")
-
-    # Parse command line arguments again, this time including the new arguments
-    args = parser.parse_args()
-
-    # Update configuration with command line arguments
-    for key in default_config.keys():
-        if getattr(args, key) is not None:
-            default_config[key] = getattr(args, key)
-    logging.info(f"config: {default_config}")
-
-    config = TrainingConfig(**default_config)
-    return config
-
-
-config = read_configurations(default_config_path="configs/default_configs.yaml")
+# --------------------------- Set up Configurations -------------------------- #
+default_config = read_configurations(default_config_path="configs/default_training_configs.yaml")
+config = TrainingConfig(**default_config)
 
 dtype = (
     "bfloat16"
     if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
     else "float16"
 )
+
 # ---------------------------------------------------------------------------- #
 
 # distributed training setup for a PyTorch model

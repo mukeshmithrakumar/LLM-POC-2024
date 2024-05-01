@@ -9,3 +9,4 @@ tensorboard
 ruff
 pylint
 black
+tiktoken
