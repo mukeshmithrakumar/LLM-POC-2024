@@ -228,7 +228,7 @@ class GPT(nn.Module):
                 )
 
         # report number of parameters
-        print(f"number of parameters: {self.get_num_params()/1e6:.2fM}")
+        print(f"number of parameters: {self.get_num_params() / 1e6:.2f}M")
 
     def get_num_params(self, non_embedding=True):
         """Get the total number of parameters in the model.

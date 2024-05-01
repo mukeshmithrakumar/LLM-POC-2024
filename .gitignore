@@ -166,3 +166,4 @@ tokenizers/
 dataset/
 data/
 logs/
+*.pt

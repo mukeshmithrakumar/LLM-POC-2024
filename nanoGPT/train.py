@@ -21,6 +21,7 @@ logging.basicConfig(
     handlers=[logging.FileHandler("logs/train.log"), logging.StreamHandler(sys.stdout)],
 )
 
+
 # ---------------------------------------------------------------------------- #
 # Configuration
 def read_configurations(default_config_path: str):
@@ -60,6 +61,7 @@ def read_configurations(default_config_path: str):
 
     config = TrainingConfig(**default_config)
     return config
+
 
 config = read_configurations(default_config_path="configs/default_configs.yaml")
 
@@ -103,6 +105,7 @@ else:
     master_process = True
     seed_offset = 0
     ddp_world_size = 1
+
 tokens_per_iter = (
     config.gradient_accumulation_steps
     * ddp_world_size
@@ -159,11 +162,11 @@ def get_batch(split):
     )
     if device_type == "cuda":
         # pin arrays x, y which allows us to move them to GPU asynchronously (non_blocking=True)
-        x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(
-            device, non_blocking=True
+        x, y = x.pin_memory().to(config.device, non_blocking=True), y.pin_memory().to(
+            config.device, non_blocking=True
         )
     else:
-        x, y = x.to(device), y.to(device)
+        x, y = x.to(config.device), y.to(config.device)
     return x, y
 
 
@@ -240,7 +243,7 @@ if config.block_size < model.config.block_size:
     model_args["block_size"] = (
         config.block_size
     )  # so that the checkpoint will have the right value
-model.to(device)
+model.to(config.device)
 
 # initialize a GradScaler. If enabled=False scaler is a no-op
 scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
@@ -282,7 +285,7 @@ def estimate_loss():
 
 
 # learning rate decay scheduler (cosine with warmup)
-def get_lr(it, config):
+def get_lr(it):
     # 1) linear warmup for warmup_iters steps
     if it < config.warmup_iters:
         return config.learning_rate * it / config.warmup_iters
