@@ -10,3 +10,5 @@ ruff
 pylint
 black
 tiktoken
+datasets
+sentencepiece

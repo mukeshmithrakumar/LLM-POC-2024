@@ -37,7 +37,7 @@ class Config:
     seq_len: int = 480
     d_model: int = 512
     datasource: str = "opus_books"
-    data_folder: str = "dataset"
+    data_folder: str = "data"
     lang_src: str = "en"
     lang_tgt: str = "fr"
     model_folder: str = "weights"

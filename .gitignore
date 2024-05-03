@@ -163,7 +163,7 @@ cython_debug/
 runs/
 *_weights/
 tokenizers/
-dataset/
+models/
 data/
 logs/
 *.pt
