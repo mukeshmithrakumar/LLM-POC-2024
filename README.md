@@ -1,5 +1,5 @@
 <div align="center" id="top"> 
-	<img src="./images/llm_poc_2024_banner.jpeg" alt="llm_poc_2024_banner"  width="50%" height="25%"/>
+	<img src="llm_poc_2024_banner.jpeg" alt="llm_poc_2024_banner"  width="50%" height="25%"/>
 </div>
 
 <h1 align="center">Large Language Models POC 2024</h1>
@@ -25,7 +25,7 @@
 <p align="center">
 	<a href="#dart-about">About</a> &#xa0; | &#xa0; 
 	<a href="#sparkles-models">Models</a> &#xa0; | &#xa0;
-	<a href="#white_check_mark-requirements">Requirements</a> &#xa0; | &#xa0;
+	<a href="#test_tube-requirements">Requirements</a> &#xa0; | &#xa0;
 	<a href="#memo-license">License</a> &#xa0; | &#xa0;
 	<a href="https://github.com/mukeshmithrakumar" target="_blank">Author</a>
 </p>
@@ -38,19 +38,22 @@ My goal is to work my way through certain LLM models starting from Transformers 
 
 ## :sparkles: Models
 
-:white_check_mark: Transformer
-:white_check_mark: GPT
-:white_medium_square: LLaMA
+:white_check_mark: Transformer\
+:white_check_mark: GPT\
+:white_medium_square: LLaMA\
+:white_medium_square:
 
-## :white_check_mark: Requirements
+## :test_tube: Requirements
 
 Requirements for all the models are stored under a single `requirements.txt` file.
 
 
 ## :memo: License
 
-This project is under license from MIT. For more details, see the [LICENSE](LICENSE.md) file.
+This project is under license from MIT. For more details, see the [LICENSE](LICENSE) file.
 
+
+---
 
 Made with :heart: by <a href="https://github.com/mukeshmithrakumar" target="_blank">Mukesh Mithrakumar</a>
 
