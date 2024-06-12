@@ -25,6 +25,7 @@
 <p align="center">
 	<a href="#dart-about">About</a> &#xa0; | &#xa0; 
 	<a href="#sparkles-models">Models</a> &#xa0; | &#xa0;
+	<a href="#fire-helpful-notebooks">Helpful Notebooks</a> &#xa0; | &#xa0;
 	<a href="#test_tube-requirements">Requirements</a> &#xa0; | &#xa0;
 	<a href="#memo-license">License</a> &#xa0; | &#xa0;
 	<a href="https://github.com/mukeshmithrakumar" target="_blank">Author</a>
@@ -34,13 +35,18 @@
 
 ## :dart: About
 
-My goal is to work my way through certain LLM models starting from Transformers to help understand how each model works since most of it builds upon the other. Once I have a set of models I am interested in, the next focus will be on fine-tuning and optimizing the models to run in the cheapest hardware possible.
+My goal is to work my way through certain LLM models starting from Transformers to help me understand how each model works and builds from the previous models. Once I have a set of models I am interested in, the next focus will be on fine-tuning and optimizing the models to run on the cheapest hardware possible.
 
 ## :sparkles: Models
 
 :white_check_mark: Transformer\
 :white_check_mark: GPT\
 :white_medium_square: LLaMA\
+:white_medium_square:
+
+## :fire: Helpful Notebooks
+
+:white_medium_square: [Transformer Training 101](./transformer/transformer-training-101.ipynb)\
 :white_medium_square:
 
 ## :test_tube: Requirements

@@ -47,7 +47,9 @@ logging.basicConfig(
 )
 
 # --------------------------- Set up Configurations -------------------------- #
-default_config = read_configurations(default_config_path="configs/default_training_configs.yaml")
+default_config = read_configurations(
+    default_config_path="configs/default_training_configs.yaml"
+)
 config = TrainingConfig(**default_config)
 
 dtype = (

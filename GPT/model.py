@@ -97,7 +97,7 @@ class MLP(nn.Module):
     Attributes:
         c_fc (nn.Linear): Linear layer for the first fully connected operation.
         gelu (nn.GELU): GELU activation function.
-                        GELU is a smooth, non-linear function that approximates ReLU 
+                        GELU is a smooth, non-linear function that approximates ReLU
                         but with a non-zero gradient for negative values
         c_proj (nn.Linear): Linear layer for the second fully connected operation.
         dropout (nn.Dropout): Dropout layer for regularization.
