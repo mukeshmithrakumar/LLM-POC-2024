@@ -46,7 +46,7 @@ My goal is to work my way through certain LLM models starting from Transformers 
 
 ## :fire: Helpful Notebooks
 
-:white_medium_square: [Transformer Training 101](./transformer/transformer-training-101.ipynb)\
+:white_check_mark: [Transformer Training 101](./transformer/transformer-training-101.ipynb)\
 :white_medium_square:
 
 ## :test_tube: Requirements
