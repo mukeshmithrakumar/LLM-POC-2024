@@ -1,22 +1,21 @@
 """Train Script.
 Codes from the following repositories are used in this script: 
-- https://github.com/evintunador/minLlama3/tree/main
-- https://github.com/meta-llama/llama3/tree/main 
+- https://github.com/meta-llama/llama3
+- https://github.com/evintunador/minLlama3
 """
 
-import sys
-import os
-import time
-import json
 import logging
-import torch
-from helpers import get_tokenizer, read_configurations
-from configs.config import TrainingConfig
-from model import Llama3
 import math
+import os
+import pickle
+import sys
+import time
 
-from dataclasses import asdict
-
+import numpy as np
+import torch
+from configs.config import TrainingConfig
+from helpers import read_configurations
+from model import Llama3
 
 # ------------------------------ Set up logging ------------------------------ #
 logging.basicConfig(
@@ -29,52 +28,56 @@ default_config = read_configurations(
     default_config_path="configs/default_training_configs.yaml"
 )
 config = TrainingConfig(**default_config)
+data_dir = os.path.join("data")
 
-tokenizer = get_tokenizer(size=512)  # size options are 128, 256, 512 and 1024
-config.vocab_size = tokenizer.vocab_len
+os.makedirs(config.out_dir, exist_ok=True)
 
-logging.debug(f"config: {asdict(config)}")
-
-# ---------------------------------------------------------------------------- #
-
-# load the dataset
-with open("input.txt", "r", encoding="utf-8") as f:
-    text = f.read()
-
-logging.debug(f"Loaded text of length {len(text)}")
-logging.debug(f"First 100 characters: {text[:100]}")
-
-# Train and Test Splits
-data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
-n = int(0.9 * len(data))
-train_data, test_data = data[:n], data[n:]
-
-# ---------------------------------------------------------------------------- #
-model = Llama3(config, tokenizer).to(config.device)
-logging.debug(
-    f"Number of parameters: {sum(p.numel() for p in model.parameters())/1e3, 'K parameters'}"
-)
-logging.debug(f"LLaMA3 Model:\n{model}")
+# attempt to derive vocab_size from the dataset
+meta_path = os.path.join(data_dir, "meta.pkl")
+logging.info(f"Meta Path: {meta_path}")
+if os.path.exists(meta_path):
+    with open(meta_path, "rb") as f:
+        meta = pickle.load(f)
+    config.vocab_size = meta["vocab_size"]
+    logging.info(f"updated vocab_size = {config.vocab_size}")
 
 
 # ----------------------------- Training Helpers ----------------------------- #
-def get_batch(split, batch_size):
-    data = train_data if split == "train" else test_data
-    ix = torch.randint(len(data) - config.max_seq_len, (batch_size,))
-    x = torch.stack([data[i : i + config.max_seq_len] for i in ix])
-    y = torch.stack([data[i + 1 : i + config.max_seq_len + 1] for i in ix])
-    x, y = x.to(config.device), y.to(config.device)
+def get_batch(split):
+    # we recreate np.memmap every batch to avoid a memory leark, as per
+    # https://stackoverflow.com/questions/45132940/numpy-memmap-memory-usage-want-to-iterate-once/61472122#61472122
+    if split == "train":
+        data = np.memmap(os.path.join(data_dir, "train.bin"), dtype=np.uint16, mode="r")
+    else:
+        data = np.memmap(os.path.join(data_dir, "val.bin"), dtype=np.uint16, mode="r")
+    ix = torch.randint(len(data) - config.seq_len, (config.batch_size,))
+    x = torch.stack(
+        [torch.from_numpy((data[i : i + config.seq_len]).astype(np.int64)) for i in ix]
+    )
+    y = torch.stack(
+        [
+            torch.from_numpy((data[i + 1 : i + 1 + config.seq_len]).astype(np.int64))
+            for i in ix
+        ]
+    )
+    if config.device == "cuda":
+        # pin arrays x, y which allows us to move them to GPU asynchronously (non_blocking=True)
+        x, y = x.pin_memory().to(config.device, non_blocking=True), y.pin_memory().to(
+            config.device, non_blocking=True
+        )
+    else:
+        x, y = x.to(config.device), y.to(config.device)
     return x, y
 
 
 @torch.no_grad()
-def estimate_loss(model, batch_size, eval_iters=5):
+def estimate_loss(model, eval_iters=5):
     out = {}
     model.eval()
     for split in ["train", "val"]:
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
-            X, Y = get_batch(split, batch_size)
+            X, Y = get_batch(split)
             logits, loss = model(X, targets=Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
@@ -97,17 +100,25 @@ def lr_lambda(current_iter):
 
 
 # --------------------------------- Training --------------------------------- #
+logging.info("Loading LLaMA3 Model...")
+model = Llama3(config).to(config.device)
+logging.info(
+    f"Number of parameters: {sum(p.numel() for p in model.parameters())/1e3, 'K parameters'}"
+)
+logging.debug(f"LLaMA3 Model:\n{model}")
+
+logging.info("Starting LLaMA3 Training...")
 optimizer = torch.optim.AdamW(
     model.parameters(), lr=config.lr_init, weight_decay=config.weight_decay
 )
-scheduler = torch.OptionalType.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 best_val_loss = 1e9
 
 start_time = time.time()
 for iter_num in range(config.max_iters):
     # sample a batch of data
-    xb, yb = get_batch("train", config.max_batch_size)
+    xb, yb = get_batch("train")
 
     # train
     logits, loss = model(xb, targets=yb)
@@ -122,13 +133,13 @@ for iter_num in range(config.max_iters):
     if (iter_num % config.eval_interval == 0) or (iter_num == config.max_iters - 1):
         current_time = time.time()
         elapsed_time = current_time - start_time
-        losses = estimate_loss(model, batch_size=config.max_batch_size)
+        losses = estimate_loss(model)
         current_lr = optimizer.param_groups[0]["lr"]
         logging.info(
             f"Iter: {iter_num}, Train Loss: {losses['train']}, Val Loss: {losses['val']}, time elapsed: {elapsed_time:.2f} s"
         )
 
-    if losses["val"] < best_val_loss or config.always_save_checkpoint:
+    if losses["val"] < best_val_loss:
         best_val_loss = losses["val"]
         if iter_num > 0:
             checkpoint = {
@@ -148,13 +159,14 @@ logging.info("Starting Inference...")
 input_str = "JULIET:\nO Romeo, Romeo! wherefore art thou R"
 logging.info(f"Input String:\n{input_str}")
 logging.info("Generating...")
-logging.info(model.generate(input_str, max_gen_len=100))
+logging.info(model.generate(input_str, meta_path, max_gen_len=100))
 
 # ------------------------------ Using KV Cache ------------------------------ #
 logging.info("Generating using KV Cache...")
 output = model.generate(
     input_str,
-    max_gen_len=config.max_seq_len
+    meta_path,
+    max_gen_len=config.seq_len
     - len(
         input_str
     ),  # our model doesn't have a built-in <endoftext> token so we have to specify when to stop generating

@@ -1,9 +1,11 @@
 import math
+import pickle
 from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 from configs.config import TrainingConfig
+from torch.nn import functional as F
 
 
 class RMSNorm(torch.nn.Module):
@@ -79,11 +81,11 @@ class Attention(nn.Module):
         self.wo = nn.Linear(self.n_heads * self.head_dim, self.dim, bias=False)
 
         self.cache_k = torch.zeros(
-            (args.max_batch_size, args.max_seq_len, self.n_kv_heads, self.head_dim),
+            (args.batch_size, args.seq_len, self.n_kv_heads, self.head_dim),
             requires_grad=False,
         ).to(args.device)
         self.cache_v = torch.zeros(
-            (args.max_batch_size, args.max_seq_len, self.n_kv_heads, self.head_dim),
+            (args.batch_size, args.seq_len, self.n_kv_heads, self.head_dim),
             requires_grad=False,
         ).to(args.device)
 
@@ -201,13 +203,12 @@ class TransformerBlock(nn.Module):
 
 
 class Llama3(nn.Module):
-    def __init__(self, params: TrainingConfig, tokenizer) -> None:
+    def __init__(self, params: TrainingConfig) -> None:
         super().__init__()
         self.params = params
         self.vocab_size = params.vocab_size
         self.n_layers = params.n_layers
-        self.max_seq_len = params.max_seq_len
-        self.tokenizer = tokenizer
+        self.seq_len = params.seq_len
 
         self.tok_embeddings = nn.Embedding(params.vocab_size, params.dim)
 
@@ -224,12 +225,12 @@ class Llama3(nn.Module):
 
         self.freqs_cis = precompute_freqs_cis(
             params.dim // params.n_heads,
-            params.max_seq_len * 2,
+            params.seq_len * 2,
             params.rope_theta,
         )
 
         mask = torch.full(
-            (params.max_seq_len, params.max_seq_len),
+            (params.seq_len, params.seq_len),
             float("-inf"),
             device=params.device,
         )
@@ -248,9 +249,7 @@ class Llama3(nn.Module):
         assert (
             tokens.shape == targets.shape
         ), f"tokens.shape {tokens.shape} != targets.shape {targets.shape}"
-        assert (
-            seqlen == self.max_seq_len
-        ), f"seqlen {seqlen} != self.max_seq_len {self.max_seq_len}"
+        assert seqlen == self.seq_len, f"seqlen {seqlen} != self.seq_len {self.seq_len}"
 
         h = self.tok_embeddings(tokens)
         freqs_cis = self.freqs_cis.to(h.device)
@@ -356,8 +355,9 @@ class Llama3(nn.Module):
     def generate(
         self,
         prompt: str,
+        meta_path: str,
         max_gen_len: int = None,
-        memory_saver_div: int = 1,  # defaults to full max_seq_len**2 memory use. must be power of 2
+        memory_saver_div: int = 1,  # defaults to full seq_len**2 memory use. must be power of 2
         temperature: float = 0.6,  # default value in meta's code
         top_p: float = 0.9,  # default value in meta's code
         top_k: int = TrainingConfig.vocab_size,  # meta's code doesn't bother with topk
@@ -366,22 +366,26 @@ class Llama3(nn.Module):
         assert ((memory_saver_div & (memory_saver_div - 1)) == 0) & (
             memory_saver_div > 0
         ), f"memory_saver_div {memory_saver_div} must be power of 2"
-        max_context_window = self.max_seq_len // memory_saver_div
-        if max_context_window < self.max_seq_len:
+        max_context_window = self.seq_len // memory_saver_div
+        if max_context_window < self.seq_len:
             print(
-                f"maximum attention matrix size will be {max_context_window}x{self.max_seq_len} rather than {self.max_seq_len}x{self.max_seq_len}\n"
+                f"maximum attention matrix size will be {max_context_window}x{self.seq_len} rather than {self.seq_len}x{self.seq_len}\n"
             )
 
         # encoding the prompt into token indices
-        tokens = self.tokenizer.encode(prompt)
+        with open(meta_path, "rb") as f:
+            meta = pickle.load(f)
+        # TODO: want to make this more general to arbitrary encoder/decoder schemes
+        stoi, itos = meta["stoi"], meta["itos"]
+        encode = lambda s: [stoi[c] for c in s]  # noqa: E731
+        decode = lambda l: "".join([itos[i] for i in l])  # noqa: E731
+        tokens = encode(prompt)
 
         if max_gen_len is None:
-            max_gen_len = self.max_seq_len - len(tokens)
-        elif max_gen_len + len(tokens) > self.max_seq_len:
-            print(
-                f"capping max_gen_len at max_seq_len={self.max_seq_len} including input\n"
-            )
-            max_gen_len = self.max_seq_len - len(tokens)
+            max_gen_len = self.seq_len - len(tokens)
+        elif max_gen_len + len(tokens) > self.seq_len:
+            print(f"capping max_gen_len at seq_len={self.seq_len} including input\n")
+            max_gen_len = self.seq_len - len(tokens)
 
         # turning it into the right tensor shape
         tokens = torch.tensor(tokens, device=self.params.device)
@@ -410,5 +414,5 @@ class Llama3(nn.Module):
                 start_pos += 1
 
         # decode our list of tokens to an actual string
-        output = self.tokenizer.decode(tokens.squeeze(0).tolist())
+        output = decode(tokens.squeeze(0).tolist())
         return output

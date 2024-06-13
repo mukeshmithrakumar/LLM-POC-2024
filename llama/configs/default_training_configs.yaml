@@ -1,23 +1,22 @@
-dim: 128  # 4096
-n_layers: 12  # 32
-n_heads: 4  # 32
-n_kv_heads: 1  # None
-vocab_size: -1
-multiple_of: 256  # make SwiGLU hidden layer size multiple of large power of 2
-ffn_dim_multiplier: None
+dim: 128 # 4096
+n_layers: 12 # 32
+n_heads: 4 # 32
+n_kv_heads: 1 # None
+vocab_size: 32000
+multiple_of: 256 # make SwiGLU hidden layer size multiple of large power of 2
+# ffn_dim_multiplier: None
 norm_eps: 0.00001
-rope_theta: 10000  # 500000
-max_batch_size: 24
-max_seq_len: 512  # 8192 but their maximum chunk size when running inference is 2048
-device: 'cuda'
+rope_theta: 10000 # 500000
+batch_size: 24
+seq_len: 512 # 8192 but their maximum chunk size when running inference is 2048
+device: "cuda"
 dropout_rate: 0.1
 
 lr_init: 0.001
 weight_decay: 0.02
-max_iters: 2000  # how long we want to train for
-eval_interval: 100  # how often we want to evaluate
-warmup_iters: 50  # Number of warmup iterations
-warmup_factor: 0.001  # Warmup factor (initial learning rate is multiplied by this factor)
-lr_final: 0.00001  # Minimum learning rate
+max_iters: 2000 # how long we want to train for
+eval_interval: 100 # how often we want to evaluate
+warmup_iters: 50 # Number of warmup iterations
+warmup_factor: 0.001 # Warmup factor (initial learning rate is multiplied by this factor)
+lr_final: 0.00001 # Minimum learning rate
 out_dir: "out"
-always_save_checkpoint: True # if True, always save a checkpoint after each eval
