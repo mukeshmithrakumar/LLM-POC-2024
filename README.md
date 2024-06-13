@@ -41,12 +41,13 @@ My goal is to work my way through certain LLM models starting from Transformers 
 
 :white_check_mark: Transformer\
 :white_check_mark: GPT\
-:white_medium_square: LLaMA\
+:white_check_mark: LLaMA\
 :white_medium_square:
 
 ## :fire: Helpful Notebooks
 
-:white_check_mark: [Transformer Training 101](./transformer/transformer-training-101.ipynb)\
+:white_check_mark: [Transformer Arithmetic](./transformer/transformer-arithmetic.ipynb)\
+:white_medium_square: WIP [Transformer Scaling](./transformer/transformer-scaling.ipynb)\
 :white_medium_square:
 
 ## :test_tube: Requirements
