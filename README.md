@@ -39,16 +39,35 @@ My goal is to work my way through certain LLM models starting from Transformers 
 
 ## :sparkles: Models
 
-:white_check_mark: Transformer\
-:white_check_mark: GPT\
-:white_check_mark: LLaMA\
-:white_medium_square:
+<p>
+  <span>✅ Transformer</span><br>
+  <span>✅ GPT</span><br>
+  <span>✅ LLaMA</span><br>
+  <span>◻️ LLM Inference Optimization</span><br>
+  &emsp;<span>◻️ In-flight Batching</span><br>
+  &emsp;<span>◻️ Speculative inference</span><br>
+  &emsp;<span>◻️ Key-Value Caching</span><br>
+  &emsp;<span>◻️ PagedAttention</span><br>
+  &emsp;<span>◻️ Pipeline Parallelism</span><br>
+  &emsp;<span>◻️ Tensor Parallelism</span><br>
+  &emsp;<span>◻️ Sequence Parallelism</span><br>
+  &emsp;<span>◻️ Flash Attention</span><br>
+  &emsp;<span>◻️ Quantization</span><br>
+  &emsp;<span>◻️ Sparsity</span><br>
+  &emsp;<span>◻️ Distillation</span><br>
+  &emsp;<span>◻️ </span><br>
+  &emsp;<span>◻️ </span><br>
+</p>
+
 
 ## :fire: Helpful Notebooks
 
-:white_check_mark: [Transformer Arithmetic](./transformer/transformer-arithmetic.ipynb)\
-:white_medium_square: WIP [Transformer Scaling](./transformer/transformer-scaling.ipynb)\
-:white_medium_square:
+<p>
+  <span>✅ <a href="./transformer/transformer-arithmetic.ipynb">Transformer Arithmetic</a></span><br>
+  <span>✅ <a href="./transformer/transformer-scaling.ipynb">[WIP] Transformer Scaling</a></span><br>
+  <span>◻️ </span><br>
+</p>
+
 
 ## :test_tube: Requirements
 
